@@ -53,6 +53,34 @@
         <p id="sharebutton" class="navbutton left selected hidden">Share</p>
       </div>
     </div>
+    <div id="toolbar" class="toolbar">
+      <div class="toolbar-content">
+        <button type="button" id="btn-bold" class="toolbar-btn" title="Negrito (Ctrl+B)" onclick="actionBold()" data-action="bold">
+          <i class="material-icons">format_bold</i>
+          <span class="btn-label">Negrito</span>
+        </button>
+        <button type="button" id="btn-italic" class="toolbar-btn" title="Itálico (Ctrl+I)" onclick="actionItalic()" data-action="italic">
+          <i class="material-icons">format_italic</i>
+          <span class="btn-label">Itálico</span>
+        </button>
+        <button type="button" id="btn-code" class="toolbar-btn" title="Código (Ctrl+K)" onclick="actionCode()" data-action="code">
+          <i class="material-icons">code</i>
+          <span class="btn-label">Código</span>
+        </button>
+        <button type="button" id="btn-heading" class="toolbar-btn" title="Título" onclick="actionHeading()" data-action="heading">
+          <i class="material-icons">title</i>
+          <span class="btn-label">Título</span>
+        </button>
+        <button type="button" id="btn-list" class="toolbar-btn" title="Lista" onclick="actionList()" data-action="list">
+          <i class="material-icons">format_list_bulleted</i>
+          <span class="btn-label">Lista</span>
+        </button>
+        <button type="button" id="btn-table" class="toolbar-btn" title="Tabela" onclick="actionTable()" data-action="table">
+          <i class="material-icons">grid_on</i>
+          <span class="btn-label">Tabela</span>
+        </button>
+      </div>
+    </div>
     <script src="lib/markdown-it.js"></script>
     <script src="lib/markdown-it-footnote.js"></script>
     <script src="lib/highlight.pack.js"></script>

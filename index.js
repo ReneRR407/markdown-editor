@@ -69,8 +69,8 @@ var render_tasklist = function(str){
     if (str.match(/<li>\[ \]\s+\w+/gi)){
         str = str.replace(/(<li)(>\[ \]\s+)(\w+)/gi, 
           `$1 style="list-style-type: none;"><input type="checkbox" 
-            style="list-style-type: none; 
-            margin: 0 0.2em 0 -1.3em;" disabled> $3`);
+          style="list-style-type: none; 
+          margin: 0 0.2em 0 -1.3em;" disabled> $3`);
     }
     return str
 }
@@ -127,23 +127,356 @@ function selectionChanger(selection,operator,endoperator){
     if(!endoperator){
         endoperator = operator
     }
-    var isApplied = selection.slice(0, 2) === operator && selection.slice(-2) === endoperator;
-    var finaltext = isApplied ? selection.slice(2, -2) : operator + selection + endoperator;
+    var isApplied = selection.slice(0, operator.length) === operator && selection.slice(-endoperator.length) === endoperator;
+    var finaltext = isApplied ? selection.slice(operator.length, -endoperator.length) : operator + selection + endoperator;
     return finaltext;
+}
+
+/* Barra de Ações Rápidas (Toolbar actions) */
+
+function actionBold() {
+    editor.focus();
+    var sel = editor.getSelection();
+    if (sel.length > 0) {
+        // If selection is already wrapped in **
+        if (sel.length >= 4 && sel.slice(0, 2) === '**' && sel.slice(-2) === '**') {
+            editor.replaceSelection(sel.slice(2, -2), "around");
+            return;
+        }
+        // If selection is surrounded by ** on current line
+        var from = editor.getCursor("from");
+        var to = editor.getCursor("to");
+        if (from.line === to.line && from.ch >= 2) {
+            var line = editor.getLine(from.line);
+            if (line.slice(from.ch - 2, from.ch) === '**' && line.slice(to.ch, to.ch + 2) === '**') {
+                editor.replaceRange(sel, { line: from.line, ch: from.ch - 2 }, { line: to.line, ch: to.ch + 2 });
+                editor.setSelection({ line: from.line, ch: from.ch - 2 }, { line: from.line, ch: from.ch - 2 + sel.length });
+                return;
+            }
+        }
+        var leadingSpaces = "";
+        var trailingSpaces = "";
+        var matchLeading = sel.match(/^(\s+)/);
+        if (matchLeading) {
+            leadingSpaces = matchLeading[1];
+            sel = sel.slice(leadingSpaces.length);
+        }
+        var matchTrailing = sel.match(/(\s+)$/);
+        if (matchTrailing) {
+            trailingSpaces = matchTrailing[1];
+            sel = sel.slice(0, -trailingSpaces.length);
+        }
+        editor.replaceSelection(leadingSpaces + '**' + sel + '**' + trailingSpaces, "around");
+    } else {
+        var cursor = editor.getCursor();
+        var line = editor.getLine(cursor.line);
+        if (cursor.ch >= 2 && line.slice(cursor.ch - 2, cursor.ch) === '**' && line.slice(cursor.ch, cursor.ch + 2) === '**') {
+            editor.replaceRange("", { line: cursor.line, ch: cursor.ch - 2 }, { line: cursor.line, ch: cursor.ch + 2 });
+            return;
+        }
+        var placeholder = "texto em negrito";
+        editor.replaceSelection('**' + placeholder + '**');
+        editor.setSelection(
+            { line: cursor.line, ch: cursor.ch + 2 },
+            { line: cursor.line, ch: cursor.ch + 2 + placeholder.length }
+        );
+    }
+}
+
+function actionItalic() {
+    editor.focus();
+    var sel = editor.getSelection();
+    if (sel.length > 0) {
+        var isWrapped = (sel.length >= 2 && (
+            (sel.slice(0, 1) === '*' && sel.slice(-1) === '*' && sel.slice(0, 2) !== '**') ||
+            (sel.slice(0, 1) === '_' && sel.slice(-1) === '_' && sel.slice(0, 2) !== '__')
+        ));
+        if (isWrapped) {
+            editor.replaceSelection(sel.slice(1, -1), "around");
+            return;
+        }
+        var from = editor.getCursor("from");
+        var to = editor.getCursor("to");
+        if (from.line === to.line && from.ch >= 1) {
+            var line = editor.getLine(from.line);
+            var prevChar = line.slice(from.ch - 1, from.ch);
+            var nextChar = line.slice(to.ch, to.ch + 1);
+            if ((prevChar === '*' && nextChar === '*') || (prevChar === '_' && nextChar === '_')) {
+                editor.replaceRange(sel, { line: from.line, ch: from.ch - 1 }, { line: to.line, ch: to.ch + 1 });
+                editor.setSelection({ line: from.line, ch: from.ch - 1 }, { line: from.line, ch: from.ch - 1 + sel.length });
+                return;
+            }
+        }
+        var leadingSpaces = "";
+        var trailingSpaces = "";
+        var matchLeading = sel.match(/^(\s+)/);
+        if (matchLeading) {
+            leadingSpaces = matchLeading[1];
+            sel = sel.slice(leadingSpaces.length);
+        }
+        var matchTrailing = sel.match(/(\s+)$/);
+        if (matchTrailing) {
+            trailingSpaces = matchTrailing[1];
+            sel = sel.slice(0, -trailingSpaces.length);
+        }
+        editor.replaceSelection(leadingSpaces + '*' + sel + '*' + trailingSpaces, "around");
+    } else {
+        var cursor = editor.getCursor();
+        var line = editor.getLine(cursor.line);
+        if (cursor.ch >= 1 && line.slice(cursor.ch - 1, cursor.ch) === '*' && line.slice(cursor.ch, cursor.ch + 1) === '*') {
+            editor.replaceRange("", { line: cursor.line, ch: cursor.ch - 1 }, { line: cursor.line, ch: cursor.ch + 1 });
+            return;
+        }
+        var placeholder = "texto em itálico";
+        editor.replaceSelection('*' + placeholder + '*');
+        editor.setSelection(
+            { line: cursor.line, ch: cursor.ch + 1 },
+            { line: cursor.line, ch: cursor.ch + 1 + placeholder.length }
+        );
+    }
+}
+
+function actionCode() {
+    editor.focus();
+    var sel = editor.getSelection();
+    if (sel.length > 0) {
+        if (sel.indexOf('\n') !== -1) {
+            var trimmed = sel.trim();
+            if (trimmed.startsWith('```') && trimmed.endsWith('```')) {
+                var lines = trimmed.split('\n');
+                if (lines.length >= 2 && lines[0].startsWith('```') && lines[lines.length - 1].trim() === '```') {
+                    var inner = lines.slice(1, -1).join('\n');
+                    editor.replaceSelection(inner, "around");
+                    return;
+                }
+            }
+            editor.replaceSelection('```\n' + sel + '\n```', "around");
+            return;
+        }
+        if (sel.length >= 2 && sel.slice(0, 1) === '`' && sel.slice(-1) === '`') {
+            editor.replaceSelection(sel.slice(1, -1), "around");
+            return;
+        }
+        var from = editor.getCursor("from");
+        var to = editor.getCursor("to");
+        if (from.line === to.line && from.ch >= 1) {
+            var line = editor.getLine(from.line);
+            if (line.slice(from.ch - 1, from.ch) === '`' && line.slice(to.ch, to.ch + 1) === '`') {
+                editor.replaceRange(sel, { line: from.line, ch: from.ch - 1 }, { line: to.line, ch: to.ch + 1 });
+                editor.setSelection({ line: from.line, ch: from.ch - 1 }, { line: from.line, ch: from.ch - 1 + sel.length });
+                return;
+            }
+        }
+        var leadingSpaces = "";
+        var trailingSpaces = "";
+        var matchLeading = sel.match(/^(\s+)/);
+        if (matchLeading) {
+            leadingSpaces = matchLeading[1];
+            sel = sel.slice(leadingSpaces.length);
+        }
+        var matchTrailing = sel.match(/(\s+)$/);
+        if (matchTrailing) {
+            trailingSpaces = matchTrailing[1];
+            sel = sel.slice(0, -trailingSpaces.length);
+        }
+        editor.replaceSelection(leadingSpaces + '`' + sel + '`' + trailingSpaces, "around");
+    } else {
+        var cursor = editor.getCursor();
+        var line = editor.getLine(cursor.line);
+        if (line.trim().length === 0) {
+            var blockPlaceholder = "código aqui";
+            editor.replaceRange("```\n" + blockPlaceholder + "\n```", { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+            editor.setSelection(
+                { line: cursor.line + 1, ch: 0 },
+                { line: cursor.line + 1, ch: blockPlaceholder.length }
+            );
+            return;
+        }
+        if (cursor.ch >= 1 && line.slice(cursor.ch - 1, cursor.ch) === '`' && line.slice(cursor.ch, cursor.ch + 1) === '`') {
+            editor.replaceRange("", { line: cursor.line, ch: cursor.ch - 1 }, { line: cursor.line, ch: cursor.ch + 1 });
+            return;
+        }
+        var placeholder = "código";
+        editor.replaceSelection('`' + placeholder + '`');
+        editor.setSelection(
+            { line: cursor.line, ch: cursor.ch + 1 },
+            { line: cursor.line, ch: cursor.ch + 1 + placeholder.length }
+        );
+    }
+}
+
+function actionHeading() {
+    editor.focus();
+    var cursorFrom = editor.getCursor("from");
+    var cursorTo = editor.getCursor("to");
+    var startLine = cursorFrom.line;
+    var endLine = cursorTo.line;
+
+    if (cursorTo.ch === 0 && endLine > startLine) {
+        endLine--;
+    }
+
+    for (var lineNo = startLine; lineNo <= endLine; lineNo++) {
+        var line = editor.getLine(lineNo);
+        if (line.trim().length === 0) {
+            var placeholder = "Título";
+            editor.replaceRange("# " + placeholder, { line: lineNo, ch: 0 }, { line: lineNo, ch: line.length });
+            if (startLine === endLine) {
+                editor.setSelection({ line: lineNo, ch: 2 }, { line: lineNo, ch: 2 + placeholder.length });
+            }
+        } else {
+            var match = line.match(/^(#{1,6})\s*(.*)$/);
+            if (match) {
+                var hashes = match[1];
+                var content = match[2];
+                if (hashes.length < 3) {
+                    var newLine = hashes + "# " + content;
+                    editor.replaceRange(newLine, { line: lineNo, ch: 0 }, { line: lineNo, ch: line.length });
+                } else {
+                    editor.replaceRange(content, { line: lineNo, ch: 0 }, { line: lineNo, ch: line.length });
+                }
+            } else {
+                var newLine = "# " + line;
+                editor.replaceRange(newLine, { line: lineNo, ch: 0 }, { line: lineNo, ch: line.length });
+            }
+        }
+    }
+}
+
+function actionList() {
+    editor.focus();
+    var cursorFrom = editor.getCursor("from");
+    var cursorTo = editor.getCursor("to");
+    var startLine = cursorFrom.line;
+    var endLine = cursorTo.line;
+
+    if (cursorTo.ch === 0 && endLine > startLine) {
+        endLine--;
+    }
+
+    var allAreLists = true;
+    var lineCount = 0;
+    for (var i = startLine; i <= endLine; i++) {
+        var text = editor.getLine(i);
+        if (text.trim().length > 0) {
+            lineCount++;
+            if (!text.match(/^\s*[-*+]\s+/)) {
+                allAreLists = false;
+            }
+        }
+    }
+
+    if (lineCount === 0) {
+        var cursor = editor.getCursor();
+        var placeholder = "Item da lista";
+        editor.replaceRange("- " + placeholder, { line: cursor.line, ch: 0 }, { line: cursor.line, ch: editor.getLine(cursor.line).length });
+        editor.setSelection({ line: cursor.line, ch: 2 }, { line: cursor.line, ch: 2 + placeholder.length });
+        return;
+    }
+
+    for (var lineNo = startLine; lineNo <= endLine; lineNo++) {
+        var line = editor.getLine(lineNo);
+        if (allAreLists) {
+            var newLine = line.replace(/^(\s*)[-*+]\s+/, '$1');
+            editor.replaceRange(newLine, { line: lineNo, ch: 0 }, { line: lineNo, ch: line.length });
+        } else {
+            if (!line.match(/^\s*[-*+]\s+/)) {
+                var newLine = "- " + line;
+                editor.replaceRange(newLine, { line: lineNo, ch: 0 }, { line: lineNo, ch: line.length });
+            }
+        }
+    }
+}
+
+function actionTable() {
+    editor.focus();
+    var cursor = editor.getCursor();
+    var selection = editor.getSelection();
+
+    var tableTemplate = 
+"| Coluna 1 | Coluna 2 | Coluna 3 |\n" +
+"| -------- | -------- | -------- |\n" +
+"| Item 1   | Item 2   | Item 3   |\n" +
+"| Item 4   | Item 5   | Item 6   |";
+
+    if (selection.length > 0) {
+        var lines = selection.trim().split("\n");
+        if (lines.length > 1 || lines[0].indexOf(",") !== -1 || lines[0].indexOf("\t") !== -1) {
+            var rows = lines.map(function(line) {
+                return line.split(/[,\t|]/).map(function(c) { return c.trim(); }).filter(function(c) { return c.length > 0; });
+            }).filter(function(r) { return r.length > 0; });
+
+            if (rows.length > 0) {
+                var maxCols = rows.reduce(function(m, r) { return Math.max(m, r.length); }, 0);
+                if (maxCols > 1) {
+                    var out = "| " + rows[0].map(function(c, i) { return c || ("Coluna " + (i + 1)); }).join(" | ") + " |\n";
+                    out += "| " + rows[0].map(function() { return "--------"; }).join(" | ") + " |\n";
+                    for (var r = 1; r < rows.length; r++) {
+                        var rowCells = [];
+                        for (var c = 0; c < maxCols; c++) {
+                            rowCells.push(rows[r][c] || "");
+                        }
+                        out += "| " + rowCells.join(" | ") + " |\n";
+                    }
+                    editor.replaceSelection(out.trim());
+                    return;
+                }
+            }
+        }
+        editor.replaceSelection(tableTemplate);
+    } else {
+        var line = editor.getLine(cursor.line);
+        var prefix = "";
+        if (cursor.line > 0 && line.length > 0) {
+            prefix = "\n\n";
+        } else if (line.trim().length > 0) {
+            prefix = "\n";
+        }
+        var textToInsert = prefix + tableTemplate;
+        editor.replaceRange(textToInsert, cursor);
+        var headerLine = cursor.line + (prefix ? prefix.split("\n").length - 1 : 0);
+        editor.setSelection(
+            { line: headerLine, ch: 2 },
+            { line: headerLine, ch: 10 }
+        );
+    }
+}
+
+// Aliases for global accessibility and programmatic use
+window.actionBold = window.insertBold = actionBold;
+window.actionItalic = window.insertItalic = actionItalic;
+window.actionCode = window.insertCode = actionCode;
+window.actionHeading = window.insertHeading = actionHeading;
+window.actionList = window.insertList = actionList;
+window.actionTable = window.insertTable = actionTable;
+
+function initToolbar() {
+    var toolbar = document.getElementById('toolbar');
+    if (!toolbar) return;
+    var buttons = toolbar.querySelectorAll('.toolbar-btn');
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].addEventListener('mousedown', function(e) {
+            e.preventDefault();
+        });
+    }
 }
 
 editor.addKeyMap({
     // bold
     'Ctrl-B': function(cm) {
-        cm.replaceSelection(selectionChanger(cm.getSelection(),'**'));
+        actionBold();
     },
     // italic
     'Ctrl-I': function(cm) {
-        cm.replaceSelection(selectionChanger(cm.getSelection(),'_'));
+        actionItalic();
     },
     // code
     'Ctrl-K': function(cm) {
-        cm.replaceSelection(selectionChanger(cm.getSelection(),'`'));
+        actionCode();
+    },
+    // heading
+    'Ctrl-H': function(cm) {
+        actionHeading();
     },
     // keyboard shortcut
     'Ctrl-L': function(cm) {
@@ -292,6 +625,10 @@ function toggleReadMode(button) {
     button.classList.toggle('selected');
     document.getElementById('out').classList.toggle('focused');
     document.getElementById('in').classList.toggle('hidden');
+    var toolbar = document.getElementById('toolbar');
+    if (toolbar) {
+        toolbar.classList.toggle('hidden');
+    }
 }
 
 function toggleSpellCheck(button) {
@@ -350,6 +687,7 @@ function start() {
         editor.setValue(localStorage.getItem('content'));
     }
     update(editor);
+    initToolbar();
     editor.focus();
     document.getElementById('fileInput').addEventListener('change', openFile, false);
 }
