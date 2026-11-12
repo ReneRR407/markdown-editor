@@ -11,7 +11,7 @@ body {
     position: fixed;
     top: 78px;
     left: 0;
-    bottom: 0;
+    bottom: 32px;
     width: 50%;
     height: auto;
     overflow: auto;
@@ -39,7 +39,7 @@ body {
     top: 78px;
     right: 0;
     left: 50%;
-    bottom: 0;
+    bottom: 32px;
     overflow: auto;
     padding: 10px;
     padding-left: 20px;
@@ -352,6 +352,64 @@ body {
     }
 }
 
+/* Rodapé fixo de estatísticas (Footer) */
+#footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    background-color: #1f1f1f;
+    border-top: 1px solid #333;
+    color: #ccc;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0 15px;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    height: 100%;
+    scrollbar-width: none;
+}
+
+.footer-content::-webkit-scrollbar {
+    display: none;
+}
+
+.stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #aaa;
+}
+
+.stat-item i.material-icons {
+    font-size: 16px;
+    line-height: 1;
+    color: #888;
+}
+
+.stat-item strong {
+    color: #fff;
+    font-weight: 600;
+}
+
+.stat-separator {
+    color: #444;
+    font-size: 12px;
+}
+
 body {
     background-color: rgb(40, 40, 40);
 }
@@ -374,6 +432,12 @@ body {
     border-bottom: 1px solid #2e2e2e;
 }
 
+.nightmode #footer {
+    filter: invert(0%);
+    background-color: #181818;
+    border-top: 1px solid #2e2e2e;
+}
+
 .nightmode img {
    filter: invert(100%);
    background: black; /* to deal with inverting transparent images */
@@ -388,12 +452,13 @@ span.cm-error {
 }
 
 @media print {
-    #in, #navbar, #toolbar {
+    #in, #navbar, #toolbar, #footer {
         display: none !important;
     }
     #out {
         left: 0 !important;
         top: 0 !important;
+        bottom: 0 !important;
         position: static !important;
         border-width: 0px !important;
         filter: invert(0%) !important;

@@ -75,7 +75,45 @@ var render_tasklist = function(str){
     return str
 }
 
+function updateStats(text) {
+    var content = text || "";
+
+    // Contagem de caracteres
+    var charCount = content.length;
+
+    // Contagem de linhas
+    var lineCount = content.length === 0 ? 0 : content.split(/\r\n|\r|\n/).length;
+
+    // Contagem de palavras (considera tokens que contenham letras ou números)
+    var trimmed = content.trim();
+    var wordCount = 0;
+    if (trimmed.length > 0) {
+        var tokens = trimmed.split(/\s+/);
+        wordCount = tokens.filter(function(token) {
+            return /[a-zA-Z0-9\u00C0-\u024F]/.test(token);
+        }).length;
+    }
+
+    // Tempo estimado de leitura (média de 200 palavras por minuto)
+    var wordsPerMinute = 200;
+    var readingTimeMinutes = wordCount > 0 ? Math.ceil(wordCount / wordsPerMinute) : 0;
+
+    var wordEl = document.getElementById('word-count');
+    var charEl = document.getElementById('char-count');
+    var lineEl = document.getElementById('line-count');
+    var timeEl = document.getElementById('reading-time');
+
+    if (wordEl) wordEl.textContent = wordCount;
+    if (charEl) charEl.textContent = charCount;
+    if (lineEl) lineEl.textContent = lineCount;
+    if (timeEl) timeEl.textContent = readingTimeMinutes + " min";
+}
+
+window.updateStats = updateStats;
+
 function setOutput(val) {
+    updateStats(val);
+
     val = val.replace(/<equation>((.*?\n)*?.*?)<\/equation>/ig, function(a, b) {
         return '<img src="http://latex.codecogs.com/png.latex?' + encodeURIComponent(b) + '" />';
     });
