@@ -79,6 +79,19 @@
           <i class="material-icons">grid_on</i>
           <span class="btn-label">Tabela</span>
         </button>
+        <span class="toolbar-divider"></span>
+        <button type="button" id="btn-preview-theme" class="toolbar-btn" title="Alternar tema da pré-visualização (Claro/Escuro)" onclick="togglePreviewTheme()" data-action="preview-theme">
+          <i class="material-icons">invert_colors</i>
+          <span class="btn-label" id="preview-theme-label">Tema: Claro</span>
+        </button>
+        <button type="button" id="btn-download-md" class="toolbar-btn" title="Descarregar ficheiro Markdown (.md)" onclick="saveAsMarkdown()" data-action="download-md">
+          <i class="material-icons">file_download</i>
+          <span class="btn-label">Baixar .md</span>
+        </button>
+        <button type="button" id="btn-download-html" class="toolbar-btn" title="Descarregar ficheiro HTML (.html)" onclick="saveAsHtml()" data-action="download-html">
+          <i class="material-icons">file_download</i>
+          <span class="btn-label">Baixar .html</span>
+        </button>
       </div>
     </div>
     <footer id="footer" class="footer">

@@ -29,9 +29,18 @@ var md = markdownit({
     .use(markdownitFootnote);
 
 var hashto;
+var isInitializing = true;
 
 function update(e) {
-    setOutput(e.getValue());
+    var val = e.getValue();
+    setOutput(val);
+
+    // Grava automaticamente o conteúdo do texto no localStorage a cada alteração
+    if (!isInitializing) {
+        try {
+            localStorage.setItem('content', val);
+        } catch (err) {}
+    }
 
     //If a title is added to the document it will be the new document.title, otherwise use default
     var headerElements = document.querySelectorAll('h1');
@@ -534,15 +543,26 @@ document.addEventListener('drop', function(e) {
     reader.readAsText(e.dataTransfer.files[0]);
 }, false);
 
+function getSafeFileName(ext) {
+    var baseName = document.title.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/\s]/gi, '');
+    if (!baseName) {
+        baseName = "documento";
+    }
+    return baseName + ext;
+}
+
 //Print the document named as the document title encoded to avoid strange chars and spaces
 function saveAsMarkdown() {
-    save(editor.getValue(), document.title.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/\s]/gi, '') + ".md");
+    save(editor.getValue(), getSafeFileName(".md"));
 }
 
 //Print the document named as the document title encoded to avoid strange chars and spaces
 function saveAsHtml() {
-    save(document.getElementById('out').innerHTML, document.title.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/\s]/gi, '') + ".html");
+    save(document.getElementById('out').innerHTML, getSafeFileName(".html"));
 }
+
+window.saveAsMarkdown = saveAsMarkdown;
+window.saveAsHtml = saveAsHtml;
 
 document.getElementById('saveas-markdown').addEventListener('click', function() {
     saveAsMarkdown();
@@ -556,20 +576,23 @@ document.getElementById('saveas-html').addEventListener('click', function() {
 
 function save(code, name) {
     var blob = new Blob([code], {
-        type: 'text/plain'
+        type: 'text/plain;charset=utf-8'
     });
     if (window.saveAs) {
         window.saveAs(blob, name);
     } else if (navigator.saveBlob) {
         navigator.saveBlob(blob, name);
     } else {
-        url = URL.createObjectURL(blob);
+        var url = URL.createObjectURL(blob);
         var link = document.createElement("a");
         link.setAttribute("href", url);
         link.setAttribute("download", name);
-        var event = document.createEvent('MouseEvents');
-        event.initMouseEvent('click', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 0, null);
-        link.dispatchEvent(event);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function() {
+            URL.revokeObjectURL(url);
+        }, 100);
     }
 }
 
@@ -654,6 +677,53 @@ function saveInBrowser() {
     console.log("Saved");
 }
 
+function applyPreviewTheme(theme) {
+    var out = document.getElementById('out');
+    var btn = document.getElementById('btn-preview-theme');
+    var label = document.getElementById('preview-theme-label');
+    var isDark = (theme === 'dark');
+
+    if (out) {
+        if (isDark) {
+            out.classList.add('preview-dark');
+        } else {
+            out.classList.remove('preview-dark');
+        }
+    }
+
+    if (btn) {
+        if (isDark) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+
+    if (label) {
+        label.textContent = isDark ? 'Tema: Escuro' : 'Tema: Claro';
+    }
+}
+
+function togglePreviewTheme() {
+    var out = document.getElementById('out');
+    var isCurrentlyDark = out && out.classList.contains('preview-dark');
+    var newTheme = isCurrentlyDark ? 'light' : 'dark';
+    applyPreviewTheme(newTheme);
+    try {
+        localStorage.setItem('previewTheme', newTheme);
+    } catch (e) {}
+}
+
+function initPreviewTheme() {
+    var savedTheme = 'light';
+    try {
+        savedTheme = localStorage.getItem('previewTheme') || 'light';
+    } catch (e) {}
+    applyPreviewTheme(savedTheme);
+}
+
+window.togglePreviewTheme = togglePreviewTheme;
+
 function toggleNightMode(button) {
     button.classList.toggle('selected');
     document.getElementById('toplevel').classList.toggle('nightmode');
@@ -704,6 +774,7 @@ function processQueryParams() {
 }
 
 function start() {
+    initPreviewTheme();
     processQueryParams();
     if (window.location.hash) {
         var h = window.location.hash.replace(/^#/, '');
@@ -721,9 +792,10 @@ function start() {
                 ))
             );
         }
-    } else if (localStorage.getItem('content')) {
+    } else if (localStorage.getItem('content') !== null) {
         editor.setValue(localStorage.getItem('content'));
     }
+    isInitializing = false;
     update(editor);
     initToolbar();
     editor.focus();
