@@ -372,6 +372,14 @@ body {
     --border-color: #dddddd;
 }
 
+body.theme-dark {
+    --bg-color: #1e1e1e;
+    --text-color: #d4d4d4;
+    --accent-color: #569cd6;
+    --secondary-bg: #252526;
+    --border-color: #3c3c3c;
+}
+
 body.theme-dracula {
     --bg-color: #282a36;
     --text-color: #f8f8f2;
@@ -538,6 +546,183 @@ body[class*="theme-"] .stat-item strong {
     color: var(--accent-color);
 }
 
+/* Painel de Índice (Table of Contents - TOC) */
+.toc-panel {
+    position: fixed;
+    top: 78px;
+    right: 0;
+    bottom: 32px;
+    width: 280px;
+    background-color: #1f1f1f;
+    border-left: 1px solid #333;
+    color: #ccc;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.35);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body[class*="theme-"] .toc-panel {
+    background-color: var(--secondary-bg);
+    color: var(--text-color);
+    border-left-color: var(--border-color);
+}
+
+.toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #333;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+}
+
+body[class*="theme-"] .toc-header {
+    border-bottom-color: var(--border-color);
+    color: var(--accent-color);
+}
+
+.toc-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toc-title i.material-icons {
+    font-size: 18px;
+}
+
+.toc-close-btn {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.toc-close-btn:hover {
+    color: #fff;
+}
+
+.toc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.toc-item {
+    display: block;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #ccc;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 3px solid transparent;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+body[class*="theme-"] .toc-item {
+    color: var(--text-color);
+}
+
+.toc-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-left-color: var(--accent-color);
+}
+
+body[class*="theme-"] .toc-item:hover {
+    color: var(--accent-color);
+}
+
+.toc-level-1 {
+    padding-left: 14px;
+    font-weight: 600;
+}
+
+.toc-level-2 {
+    padding-left: 28px;
+    font-weight: 500;
+    font-size: 12.5px;
+}
+
+.toc-level-3 {
+    padding-left: 42px;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.toc-level-4,
+.toc-level-5,
+.toc-level-6 {
+    padding-left: 54px;
+    font-size: 11.5px;
+    opacity: 0.8;
+}
+
+.toc-empty {
+    padding: 16px 14px;
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+}
+
+/* Botão "Copiar" nos blocos de código renderizados na pré-visualização */
+#out pre {
+    position: relative;
+}
+
+.copy-code-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    color: #555;
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    z-index: 2;
+}
+
+.copy-code-btn:hover {
+    opacity: 1;
+    background-color: #fff;
+    color: #111;
+    border-color: #999;
+}
+
+.copy-code-btn.copied {
+    background-color: #2ea043 !important;
+    color: #fff !important;
+    border-color: #2ea043 !important;
+    opacity: 1;
+}
+
+body[class*="theme-"] .copy-code-btn {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+body[class*="theme-"] .copy-code-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
 /* Rodapé fixo de estatísticas (Footer) */
 #footer {
     position: fixed;
@@ -638,7 +823,7 @@ span.cm-error {
 }
 
 @media print {
-    #in, #navbar, #toolbar, #footer {
+    #in, #navbar, #toolbar, #footer, #toc-panel, .copy-code-btn {
         display: none !important;
     }
     #out {

@@ -120,8 +120,161 @@ function updateStats(text) {
 
 window.updateStats = updateStats;
 
+function copyTextToClipboard(text, buttonEl) {
+    function showCopiedFeedback() {
+        if (!buttonEl) return;
+        var originalText = "Copiar";
+        buttonEl.textContent = "Copiado!";
+        buttonEl.classList.add("copied");
+        setTimeout(function() {
+            buttonEl.textContent = originalText;
+            buttonEl.classList.remove("copied");
+        }, 2000);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showCopiedFeedback).catch(function() {
+            fallbackCopy(text, showCopiedFeedback);
+        });
+    } else {
+        fallbackCopy(text, showCopiedFeedback);
+    }
+}
+
+function fallbackCopy(text, callback) {
+    var textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+        document.execCommand("copy");
+        if (callback) callback();
+    } catch (e) {}
+    document.body.removeChild(textarea);
+}
+
+function injectCopyButtons(container) {
+    if (!container) return;
+    var preBlocks = container.querySelectorAll("pre");
+    for (var i = 0; i < preBlocks.length; i++) {
+        (function(pre) {
+            var existingBtn = pre.querySelector(".copy-code-btn");
+            if (existingBtn) {
+                existingBtn.parentNode.removeChild(existingBtn);
+            }
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "copy-code-btn";
+            btn.title = "Copiar código";
+            btn.textContent = "Copiar";
+            btn.addEventListener("click", function(e) {
+                e.stopPropagation();
+                var codeEl = pre.querySelector("code");
+                var codeText = codeEl ? (codeEl.innerText || codeEl.textContent) : (pre.innerText || pre.textContent);
+                copyTextToClipboard(codeText, btn);
+            });
+            pre.appendChild(btn);
+        })(preBlocks[i]);
+    }
+}
+
+function updateTOC(rawMarkdown) {
+    var tocList = document.getElementById("toc-list");
+    var out = document.getElementById("out");
+    if (!tocList || !out) return;
+
+    // Localiza as linhas dos cabeçalhos (#, ##, ###, etc.) no código Markdown original
+    var markdownHeadingLines = [];
+    if (typeof rawMarkdown === "string") {
+        var lines = rawMarkdown.split(/\r\n|\r|\n/);
+        var inCodeFence = false;
+        for (var l = 0; l < lines.length; l++) {
+            if (/^\s*```/.test(lines[l])) {
+                inCodeFence = !inCodeFence;
+                continue;
+            }
+            if (!inCodeFence && /^#{1,6}\s+.+/.test(lines[l])) {
+                markdownHeadingLines.push(l);
+            }
+        }
+    }
+
+    var headings = out.querySelectorAll("h1, h2, h3, h4, h5, h6");
+    tocList.innerHTML = "";
+
+    if (headings.length === 0) {
+        var emptyMsg = document.createElement("div");
+        emptyMsg.className = "toc-empty";
+        emptyMsg.textContent = "Nenhum cabeçalho (#, ##, ###) encontrado.";
+        tocList.appendChild(emptyMsg);
+        return;
+    }
+
+    for (var i = 0; i < headings.length; i++) {
+        (function(index, headingEl) {
+            var level = parseInt(headingEl.tagName.substring(1), 10) || 1;
+            var text = (headingEl.textContent || "").trim();
+            var headingId = "toc-heading-" + index;
+            headingEl.id = headingId;
+
+            var item = document.createElement("a");
+            item.className = "toc-item toc-level-" + level;
+            item.href = "#" + headingId;
+            var hashes = new Array(level + 1).join("#");
+            item.textContent = hashes + " " + text;
+            item.title = text;
+
+            item.addEventListener("click", function(e) {
+                e.preventDefault();
+                // Desloca o painel de visualização (#out) até o cabeçalho
+                isSyncingRight = true;
+                out.scrollTop = Math.max(0, headingEl.offsetTop - 12);
+                if (syncRightTimeout) clearTimeout(syncRightTimeout);
+                syncRightTimeout = setTimeout(function() {
+                    isSyncingRight = false;
+                }, 80);
+
+                // Desloca também o editor (#in) até a linha correspondente do cabeçalho
+                if (typeof editor !== "undefined" && markdownHeadingLines[index] !== undefined) {
+                    var targetLine = markdownHeadingLines[index];
+                    isSyncingLeft = true;
+                    var coords = editor.charCoords({ line: targetLine, ch: 0 }, "local");
+                    editor.scrollTo(null, Math.max(0, coords.top - 12));
+                    editor.setCursor({ line: targetLine, ch: 0 });
+                    if (syncLeftTimeout) clearTimeout(syncLeftTimeout);
+                    syncLeftTimeout = setTimeout(function() {
+                        isSyncingLeft = false;
+                    }, 80);
+                }
+            });
+
+            tocList.appendChild(item);
+        })(i, headings[i]);
+    }
+}
+
+function toggleTOC() {
+    var panel = document.getElementById("toc-panel");
+    var btn = document.getElementById("btn-toc");
+    if (!panel) return;
+    var isHidden = panel.classList.toggle("hidden");
+    if (btn) {
+        if (!isHidden) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    }
+}
+
+window.toggleTOC = toggleTOC;
+
 function setOutput(val) {
-    updateStats(val);
+    var rawMarkdown = val;
+    updateStats(rawMarkdown);
 
     val = val.replace(/<equation>((.*?\n)*?.*?)<\/equation>/ig, function(a, b) {
         return '<img src="http://latex.codecogs.com/png.latex?' + encodeURIComponent(b) + '" />';
@@ -129,29 +282,35 @@ function setOutput(val) {
 
     var out = document.getElementById('out');
     var old = out.cloneNode(true);
+    var oldBtns = old.querySelectorAll('.copy-code-btn');
+    for (var b = 0; b < oldBtns.length; b++) {
+        oldBtns[b].parentNode.removeChild(oldBtns[b]);
+    }
+
     out.innerHTML = md.render(val);
     emojify.run(out);
-    console.log(out.innerHTML);
     // Checks if there are any task-list present in out.innerHTML
     out.innerHTML = render_tasklist(out.innerHTML);
 
     var allold = old.getElementsByTagName("*");
-    if (allold === undefined) return;
-
     var allnew = out.getElementsByTagName("*");
-    if (allnew === undefined) return;
 
-    for (var i = 0, max = Math.min(allold.length, allnew.length); i < max; i++) {
-        if (!allold[i].isEqualNode(allnew[i])) {
-            isSyncingRight = true;
-            out.scrollTop = allnew[i].offsetTop;
-            if (syncRightTimeout) clearTimeout(syncRightTimeout);
-            syncRightTimeout = setTimeout(function() {
-                isSyncingRight = false;
-            }, 50);
-            return;
+    if (allold !== undefined && allnew !== undefined) {
+        for (var i = 0, max = Math.min(allold.length, allnew.length); i < max; i++) {
+            if (!allold[i].isEqualNode(allnew[i])) {
+                isSyncingRight = true;
+                out.scrollTop = allnew[i].offsetTop;
+                if (syncRightTimeout) clearTimeout(syncRightTimeout);
+                syncRightTimeout = setTimeout(function() {
+                    isSyncingRight = false;
+                }, 50);
+                break;
+            }
         }
     }
+
+    injectCopyButtons(out);
+    updateTOC(rawMarkdown);
 }
 
 CodeMirrorSpellChecker({
@@ -798,6 +957,7 @@ function saveInBrowser() {
 
 var availableThemes = [
     { id: 'default', className: '', label: 'Padrão' },
+    { id: 'theme-dark', className: 'theme-dark', label: 'Escuro Clássico' },
     { id: 'theme-dracula', className: 'theme-dracula', label: 'Dracula' },
     { id: 'theme-monokai', className: 'theme-monokai', label: 'Monokai' },
     { id: 'theme-solarized', className: 'theme-solarized', label: 'Solarized' },

@@ -84,8 +84,19 @@
           <i class="material-icons">swap_vert</i>
           <span class="btn-label" id="sync-scroll-label">Scroll Sincronizado: Ativo</span>
         </button>
+        <button type="button" id="btn-toc" class="toolbar-btn" title="Abrir/Fechar Índice de Cabeçalhos (Sumário)" onclick="toggleTOC()" data-action="toc">
+          <i class="material-icons">toc</i>
+          <span class="btn-label">Índice</span>
+        </button>
       </div>
     </div>
+    <aside id="toc-panel" class="toc-panel hidden">
+      <div class="toc-header">
+        <span class="toc-title"><i class="material-icons">toc</i> Índice do Documento</span>
+        <button type="button" id="close-toc" class="toc-close-btn" title="Fechar Índice" onclick="toggleTOC()">&times;</button>
+      </div>
+      <div id="toc-list" class="toc-list"></div>
+    </aside>
     <footer id="footer" class="footer">
       <div class="footer-content">
         <span class="stat-item" title="Contagem de palavras">
