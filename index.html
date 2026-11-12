@@ -46,7 +46,7 @@
         <p id="savebutton" title="Download" class="navbutton left" onclick="showMenu()"><i class="material-icons">file_download</i></p>
         <p id="browsersavebutton" title="Browser Save (Experimental)" class="navbutton left" onclick="saveInBrowser()"><i class="material-icons">save</i></p>
         <p id="sharebutton" title="Generate Shareable Link" class="navbutton left" onclick="updateHash()"><i class="material-icons">share</i></p>
-        <p id="nightbutton" title="Night Mode" class="navbutton left" onclick="toggleNightMode(this)"><i class="material-icons">invert_colors</i></p>
+        <p id="nightbutton" title="Alternar Tema (Padrão, Dracula, Monokai, Solarized, Neon)" class="navbutton left" onclick="toggleNightMode(this)"><i class="material-icons">invert_colors</i><span id="theme-badge" class="theme-badge">Padrão</span></p>
         <p id="readbutton" title="Reading Mode" class="navbutton left" onclick="toggleReadMode(this)"><i class="material-icons">chrome_reader_mode</i></p>
         <p id="spellbutton" title="Spell Check" class="navbutton left selected" onclick="toggleSpellCheck(this)"><i class="material-icons">spellcheck</i></p>
         <p id="newbutton" class="navbutton left hidden" onclick="clearEditor()">Clear</p>
@@ -80,17 +80,9 @@
           <span class="btn-label">Tabela</span>
         </button>
         <span class="toolbar-divider"></span>
-        <button type="button" id="btn-preview-theme" class="toolbar-btn" title="Alternar tema da pré-visualização (Claro/Escuro)" onclick="togglePreviewTheme()" data-action="preview-theme">
-          <i class="material-icons">invert_colors</i>
-          <span class="btn-label" id="preview-theme-label">Tema: Claro</span>
-        </button>
-        <button type="button" id="btn-download-md" class="toolbar-btn" title="Descarregar ficheiro Markdown (.md)" onclick="saveAsMarkdown()" data-action="download-md">
-          <i class="material-icons">file_download</i>
-          <span class="btn-label">Baixar .md</span>
-        </button>
-        <button type="button" id="btn-download-html" class="toolbar-btn" title="Descarregar ficheiro HTML (.html)" onclick="saveAsHtml()" data-action="download-html">
-          <i class="material-icons">file_download</i>
-          <span class="btn-label">Baixar .html</span>
+        <button type="button" id="btn-sync-scroll" class="toolbar-btn active" title="Ativar/Desativar sincronização de scroll entre os painéis" onclick="toggleSyncScroll()" data-action="sync-scroll">
+          <i class="material-icons">swap_vert</i>
+          <span class="btn-label" id="sync-scroll-label">Scroll Sincronizado: Ativo</span>
         </button>
       </div>
     </div>

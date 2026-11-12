@@ -362,78 +362,180 @@ body {
     }
 }
 
-/* Tema escuro dedicado para a área de pré-visualização */
-#out.preview-dark {
-    background-color: #0d1117;
-    color: #e6edf3;
-    border-left-color: #30363d;
+/* Escopo de variáveis CSS para os temas de cores */
+:root,
+body {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --accent-color: #4078c0;
+    --secondary-bg: #f6f8fa;
+    --border-color: #dddddd;
 }
 
-#out.preview-dark h1,
-#out.preview-dark h2,
-#out.preview-dark h3,
-#out.preview-dark h4,
-#out.preview-dark h5,
-#out.preview-dark h6 {
-    color: #f0f6fc;
-    border-bottom-color: #30363d;
+body.theme-dracula {
+    --bg-color: #282a36;
+    --text-color: #f8f8f2;
+    --accent-color: #bd93f9;
+    --secondary-bg: #1e1f29;
+    --border-color: #44475a;
 }
 
-#out.preview-dark a {
-    color: #58a6ff;
+body.theme-monokai {
+    --bg-color: #272822;
+    --text-color: #f8f8f2;
+    --accent-color: #a6e22e;
+    --secondary-bg: #1e1f1c;
+    --border-color: #49483e;
 }
 
-#out.preview-dark hr {
-    background-color: #30363d;
-    border-bottom-color: #30363d;
+body.theme-solarized {
+    --bg-color: #002b36;
+    --text-color: #93a1a1;
+    --accent-color: #2aa198;
+    --secondary-bg: #073642;
+    --border-color: #586e75;
 }
 
-#out.preview-dark blockquote {
-    color: #8b949e;
-    border-left-color: #3b434b;
+body.theme-neon {
+    --bg-color: #0b0c10;
+    --text-color: #e0f7fa;
+    --accent-color: #00ffcc;
+    --secondary-bg: #141824;
+    --border-color: #00ffcc66;
 }
 
-#out.preview-dark code,
-#out.preview-dark tt {
-    background-color: rgba(110, 118, 129, 0.4);
-    color: #e6edf3;
+.theme-badge {
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    vertical-align: middle;
+    margin-left: 4px;
+    font-weight: 600;
 }
 
-#out.preview-dark pre {
-    background-color: #161b22;
-    color: #e6edf3;
-    border: 1px solid #30363d;
+#nightbutton i.material-icons {
+    vertical-align: middle;
+    font-size: 20px;
 }
 
-#out.preview-dark pre code {
+/* Aplicação das variáveis de tema no Editor (#in) e na Pré-visualização (#out) */
+body[class*="theme-"] #in,
+body[class*="theme-"] .CodeMirror,
+body[class*="theme-"] .cm-s-base16-light.CodeMirror {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+}
+
+body[class*="theme-"] .CodeMirror pre {
+    color: var(--text-color) !important;
+}
+
+body[class*="theme-"] .CodeMirror div.CodeMirror-cursor {
+    border-left: 2px solid var(--accent-color) !important;
+}
+
+body[class*="theme-"] .CodeMirror-selected {
+    background: var(--secondary-bg) !important;
+}
+
+body[class*="theme-"] .cm-s-base16-light .cm-header,
+body[class*="theme-"] .cm-s-base16-light .cm-link,
+body[class*="theme-"] .cm-s-base16-light .cm-url,
+body[class*="theme-"] .cm-s-base16-light .cm-variable-2,
+body[class*="theme-"] .cm-s-base16-light .cm-quote {
+    color: var(--accent-color) !important;
+}
+
+body[class*="theme-"] .cm-s-base16-light .cm-comment {
+    color: var(--accent-color) !important;
+    opacity: 0.85;
+}
+
+body[class*="theme-"] #out {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border-left-color: var(--border-color);
+}
+
+body[class*="theme-"] #out h1,
+body[class*="theme-"] #out h2,
+body[class*="theme-"] #out h3,
+body[class*="theme-"] #out h4,
+body[class*="theme-"] #out h5,
+body[class*="theme-"] #out h6 {
+    color: var(--accent-color);
+    border-bottom-color: var(--border-color);
+}
+
+body[class*="theme-"] #out a {
+    color: var(--accent-color);
+}
+
+body[class*="theme-"] #out hr {
+    background-color: var(--border-color);
+    border-bottom-color: var(--border-color);
+}
+
+body[class*="theme-"] #out blockquote {
+    color: var(--text-color);
+    border-left-color: var(--accent-color);
+    opacity: 0.85;
+}
+
+body[class*="theme-"] #out code,
+body[class*="theme-"] #out tt {
+    background-color: var(--secondary-bg);
+    color: var(--accent-color);
+}
+
+body[class*="theme-"] #out pre {
+    background-color: var(--secondary-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+body[class*="theme-"] #out pre code {
     background-color: transparent;
     color: inherit;
 }
 
-#out.preview-dark table tr {
-    background-color: #0d1117;
-    border-top-color: #30363d;
+body[class*="theme-"] #out table tr {
+    background-color: var(--bg-color);
+    border-top-color: var(--border-color);
 }
 
-#out.preview-dark table tr:nth-child(2n) {
-    background-color: #161b22;
+body[class*="theme-"] #out table tr:nth-child(2n) {
+    background-color: var(--secondary-bg);
 }
 
-#out.preview-dark table th,
-#out.preview-dark table td {
-    border-color: #30363d;
-    color: #e6edf3;
+body[class*="theme-"] #out table th {
+    border-color: var(--border-color);
+    color: var(--accent-color);
 }
 
-#out.preview-dark kbd {
-    background-color: #161b22;
-    color: #e6edf3;
-    border-color: #30363d;
-    box-shadow: inset 0 -1px 0 #30363d;
+body[class*="theme-"] #out table td {
+    border-color: var(--border-color);
+    color: var(--text-color);
 }
 
-.nightmode #out.preview-dark {
-    filter: invert(0%);
+body[class*="theme-"] #out kbd {
+    background-color: var(--secondary-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+    box-shadow: inset 0 -1px 0 var(--border-color);
+}
+
+body[class*="theme-"] #nightbutton.selected {
+    background-color: var(--accent-color);
+    color: #111;
+}
+
+body[class*="theme-"] .toolbar-btn.active {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+body[class*="theme-"] .stat-item strong {
+    color: var(--accent-color);
 }
 
 /* Rodapé fixo de estatísticas (Footer) */

@@ -173,13 +173,54 @@ var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
 editor.on('change', update);
 
 /* Sincronização proporcional de scroll entre o painel de código (#in) e a pré-visualização (#out) */
+var syncScrollEnabled = true;
 var isSyncingLeft = false;
 var isSyncingRight = false;
 var syncLeftTimeout = null;
 var syncRightTimeout = null;
 
+function applySyncScrollState(enabled) {
+    syncScrollEnabled = Boolean(enabled);
+    var btn = document.getElementById('btn-sync-scroll');
+    var label = document.getElementById('sync-scroll-label');
+    if (btn) {
+        if (syncScrollEnabled) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+    if (label) {
+        label.textContent = syncScrollEnabled ? 'Scroll Sincronizado: Ativo' : 'Scroll Sincronizado: Inativo';
+    }
+}
+
+function toggleSyncScroll() {
+    applySyncScrollState(!syncScrollEnabled);
+    try {
+        localStorage.setItem('syncScroll', syncScrollEnabled ? 'true' : 'false');
+    } catch (e) {}
+    if (syncScrollEnabled) {
+        syncScrollFromEditor();
+    }
+}
+
+function initSyncScroll() {
+    var saved = null;
+    try {
+        saved = localStorage.getItem('syncScroll');
+    } catch (e) {}
+    if (saved !== null) {
+        applySyncScrollState(saved === 'true');
+    } else {
+        applySyncScrollState(true);
+    }
+}
+
+window.toggleSyncScroll = toggleSyncScroll;
+
 function syncScrollFromEditor() {
-    if (isSyncingLeft) {
+    if (!syncScrollEnabled || isSyncingLeft) {
         return;
     }
     var out = document.getElementById('out');
@@ -212,7 +253,7 @@ function syncScrollFromEditor() {
 }
 
 function syncScrollFromPreview() {
-    if (isSyncingRight) {
+    if (!syncScrollEnabled || isSyncingRight) {
         return;
     }
     var out = document.getElementById('out');
@@ -755,57 +796,73 @@ function saveInBrowser() {
     console.log("Saved");
 }
 
-function applyPreviewTheme(theme) {
-    var out = document.getElementById('out');
-    var btn = document.getElementById('btn-preview-theme');
-    var label = document.getElementById('preview-theme-label');
-    var isDark = (theme === 'dark');
+var availableThemes = [
+    { id: 'default', className: '', label: 'Padrão' },
+    { id: 'theme-dracula', className: 'theme-dracula', label: 'Dracula' },
+    { id: 'theme-monokai', className: 'theme-monokai', label: 'Monokai' },
+    { id: 'theme-solarized', className: 'theme-solarized', label: 'Solarized' },
+    { id: 'theme-neon', className: 'theme-neon', label: 'Neon' }
+];
+var currentThemeIndex = 0;
 
-    if (out) {
-        if (isDark) {
-            out.classList.add('preview-dark');
-        } else {
-            out.classList.remove('preview-dark');
+function applyThemeByIndex(index) {
+    currentThemeIndex = ((index % availableThemes.length) + availableThemes.length) % availableThemes.length;
+    var themeObj = availableThemes[currentThemeIndex];
+    var body = document.body;
+
+    // Remove todas as classes de tema anteriores do <body>
+    for (var i = 0; i < availableThemes.length; i++) {
+        if (availableThemes[i].className) {
+            body.classList.remove(availableThemes[i].className);
         }
     }
+    body.classList.remove('nightmode');
 
-    if (btn) {
-        if (isDark) {
-            btn.classList.add('active');
+    // Injeta a classe do tema selecionado no <body>
+    if (themeObj.className) {
+        body.classList.add(themeObj.className);
+    }
+
+    var nightBtn = document.getElementById('nightbutton');
+    var badge = document.getElementById('theme-badge');
+    if (nightBtn) {
+        if (themeObj.className) {
+            nightBtn.classList.add('selected');
         } else {
-            btn.classList.remove('active');
+            nightBtn.classList.remove('selected');
         }
+        nightBtn.setAttribute('title', 'Tema atual: ' + themeObj.label + ' (Clique para alternar)');
+    }
+    if (badge) {
+        badge.textContent = themeObj.label;
     }
 
-    if (label) {
-        label.textContent = isDark ? 'Tema: Escuro' : 'Tema: Claro';
-    }
-}
-
-function togglePreviewTheme() {
-    var out = document.getElementById('out');
-    var isCurrentlyDark = out && out.classList.contains('preview-dark');
-    var newTheme = isCurrentlyDark ? 'light' : 'dark';
-    applyPreviewTheme(newTheme);
     try {
-        localStorage.setItem('previewTheme', newTheme);
+        localStorage.setItem('theme', themeObj.id);
     } catch (e) {}
 }
 
-function initPreviewTheme() {
-    var savedTheme = 'light';
+function initTheme() {
+    var savedThemeId = 'default';
     try {
-        savedTheme = localStorage.getItem('previewTheme') || 'light';
+        savedThemeId = localStorage.getItem('theme') || 'default';
     } catch (e) {}
-    applyPreviewTheme(savedTheme);
-}
 
-window.togglePreviewTheme = togglePreviewTheme;
+    var foundIndex = 0;
+    for (var i = 0; i < availableThemes.length; i++) {
+        if (availableThemes[i].id === savedThemeId || availableThemes[i].className === savedThemeId) {
+            foundIndex = i;
+            break;
+        }
+    }
+    applyThemeByIndex(foundIndex);
+}
 
 function toggleNightMode(button) {
-    button.classList.toggle('selected');
-    document.getElementById('toplevel').classList.toggle('nightmode');
+    applyThemeByIndex(currentThemeIndex + 1);
 }
+
+window.toggleNightMode = toggleNightMode;
 
 function toggleReadMode(button) {
     button.classList.toggle('selected');
@@ -846,13 +903,14 @@ function processQueryParams() {
             document.getElementById('readbutton').click(); // Hide reading view
         }
         if (obj.dark === 'true') {
-            document.getElementById('nightbutton').click(); // Show night view
+            applyThemeByIndex(1); // Show Dracula theme
         }
     }
 }
 
 function start() {
-    initPreviewTheme();
+    initTheme();
+    initSyncScroll();
     processQueryParams();
     if (window.location.hash) {
         var h = window.location.hash.replace(/^#/, '');
