@@ -143,7 +143,12 @@ function setOutput(val) {
 
     for (var i = 0, max = Math.min(allold.length, allnew.length); i < max; i++) {
         if (!allold[i].isEqualNode(allnew[i])) {
+            isSyncingRight = true;
             out.scrollTop = allnew[i].offsetTop;
+            if (syncRightTimeout) clearTimeout(syncRightTimeout);
+            syncRightTimeout = setTimeout(function() {
+                isSyncingRight = false;
+            }, 50);
             return;
         }
     }
@@ -166,6 +171,79 @@ var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
 });
 
 editor.on('change', update);
+
+/* Sincronização proporcional de scroll entre o painel de código (#in) e a pré-visualização (#out) */
+var isSyncingLeft = false;
+var isSyncingRight = false;
+var syncLeftTimeout = null;
+var syncRightTimeout = null;
+
+function syncScrollFromEditor() {
+    if (isSyncingLeft) {
+        return;
+    }
+    var out = document.getElementById('out');
+    if (!out) return;
+
+    var scrollInfo = editor.getScrollInfo();
+    var editorMaxScroll = scrollInfo.height - scrollInfo.clientHeight;
+    var currentScrollTop = scrollInfo.top;
+
+    // Fallback caso o elemento #in tenha scroll próprio
+    if (editorMaxScroll <= 0) {
+        var inEl = document.getElementById('in');
+        if (inEl && (inEl.scrollHeight - inEl.clientHeight) > 0) {
+            editorMaxScroll = inEl.scrollHeight - inEl.clientHeight;
+            currentScrollTop = inEl.scrollTop;
+        }
+    }
+
+    var percentage = editorMaxScroll > 0 ? (currentScrollTop / editorMaxScroll) : 0;
+    percentage = Math.max(0, Math.min(1, percentage));
+
+    var outMaxScroll = out.scrollHeight - out.clientHeight;
+    isSyncingRight = true;
+    out.scrollTop = percentage * outMaxScroll;
+
+    if (syncRightTimeout) clearTimeout(syncRightTimeout);
+    syncRightTimeout = setTimeout(function() {
+        isSyncingRight = false;
+    }, 50);
+}
+
+function syncScrollFromPreview() {
+    if (isSyncingRight) {
+        return;
+    }
+    var out = document.getElementById('out');
+    if (!out) return;
+
+    var outMaxScroll = out.scrollHeight - out.clientHeight;
+    var percentage = outMaxScroll > 0 ? (out.scrollTop / outMaxScroll) : 0;
+    percentage = Math.max(0, Math.min(1, percentage));
+
+    var scrollInfo = editor.getScrollInfo();
+    var editorMaxScroll = scrollInfo.height - scrollInfo.clientHeight;
+
+    isSyncingLeft = true;
+    if (editorMaxScroll > 0) {
+        editor.scrollTo(null, percentage * editorMaxScroll);
+    } else {
+        var inEl = document.getElementById('in');
+        if (inEl && (inEl.scrollHeight - inEl.clientHeight) > 0) {
+            inEl.scrollTop = percentage * (inEl.scrollHeight - inEl.clientHeight);
+        }
+    }
+
+    if (syncLeftTimeout) clearTimeout(syncLeftTimeout);
+    syncLeftTimeout = setTimeout(function() {
+        isSyncingLeft = false;
+    }, 50);
+}
+
+editor.on('scroll', syncScrollFromEditor);
+document.getElementById('in').addEventListener('scroll', syncScrollFromEditor);
+document.getElementById('out').addEventListener('scroll', syncScrollFromPreview);
 
 function selectionChanger(selection,operator,endoperator){
     if(selection == ""){
