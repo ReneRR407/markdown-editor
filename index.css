@@ -913,6 +913,53 @@ span.cm-error {
     }
 }
 
+/* ==========================================================================
+   Diagramas Mermaid.js
+   ========================================================================== */
+.mermaid-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5em 0;
+    padding: 1.25em;
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.mermaid-preview {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mermaid-preview svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.mermaid-editing-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #eab308;
+    background-color: rgba(234, 179, 8, 0.1);
+    border: 1px dashed rgba(234, 179, 8, 0.35);
+    border-radius: 6px;
+    font-family: var(--font-sans);
+}
+
+.mermaid-editing-notice .material-icons {
+    font-size: 18px;
+}
+
 @media print {
     #in, #navbar, #toolbar, #footer, #toc-panel, .copy-code-btn {
         display: none !important;
@@ -924,5 +971,11 @@ span.cm-error {
         position: static !important;
         border-width: 0px !important;
         filter: invert(0%) !important;
+    }
+    .mermaid-container {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        page-break-inside: avoid;
     }
 }

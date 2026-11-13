@@ -79,6 +79,10 @@
           <i class="material-icons">grid_on</i>
           <span class="btn-label">Tabela</span>
         </button>
+        <button type="button" id="btn-diagram" class="toolbar-btn" title="Inserir diagrama Mermaid" onclick="actionDiagram()" data-action="diagram">
+          <i class="material-icons">account_tree</i>
+          <span class="btn-label">Diagrama</span>
+        </button>
         <span class="toolbar-divider"></span>
         <button type="button" id="btn-sync-scroll" class="toolbar-btn active" title="Ativar/Desativar rolagem sincronizada entre os painéis" onclick="toggleSyncScroll()" data-action="sync-scroll">
           <i class="material-icons">swap_vert</i>
@@ -141,6 +145,7 @@
     <script src="lib/rawinflate.js"></script>
     <script src="lib/rawdeflate.js"></script>
     <script src = "lib/sweetalert.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="index.js"></script>
   </body>
 </html>

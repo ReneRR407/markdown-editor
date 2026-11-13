@@ -28,6 +28,28 @@ var md = markdownit({
     })
     .use(markdownitFootnote);
 
+function escapeHtml(str) {
+    return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+var defaultFence = md.renderer.rules.fence || function(tokens, idx, options, env, self) {
+    return self.renderToken(tokens, idx, options);
+};
+
+md.renderer.rules.fence = function(tokens, idx, options, env, self) {
+    var token = tokens[idx];
+    var info = token.info ? token.info.trim() : '';
+    if (info === 'mermaid') {
+        return '<div class="mermaid-container"><div class="mermaid-raw" style="display:none;">' + escapeHtml(token.content) + '</div><div class="mermaid-preview"></div></div>';
+    }
+    return defaultFence(tokens, idx, options, env, self);
+};
+
 var hashto;
 var isInitializing = true;
 
@@ -311,6 +333,105 @@ function setOutput(val) {
 
     injectCopyButtons(out);
     updateTOC(rawMarkdown);
+    renderMermaidDebounced();
+}
+
+var mermaidIdCounter = 0;
+var mermaidDebounceTimer = null;
+
+function getMermaidTheme() {
+    var themeObj = (typeof availableThemes !== 'undefined' && availableThemes[currentThemeIndex]) ? availableThemes[currentThemeIndex] : null;
+    if (!themeObj || !themeObj.className) {
+        return 'default';
+    }
+    if (themeObj.id === 'theme-solarized') {
+        return 'neutral';
+    }
+    return 'dark';
+}
+
+function initMermaidConfig() {
+    if (typeof mermaid === 'undefined') return;
+    try {
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: getMermaidTheme(),
+            securityLevel: 'loose',
+            fontFamily: 'Inter, -apple-system, sans-serif'
+        });
+    } catch (e) {}
+}
+
+function renderMermaidDiagrams() {
+    if (typeof mermaid === 'undefined') return;
+    var out = document.getElementById('out');
+    if (!out) return;
+
+    var containers = out.querySelectorAll('.mermaid-container');
+    if (containers.length === 0) return;
+
+    initMermaidConfig();
+
+    for (var i = 0; i < containers.length; i++) {
+        (function(container, index) {
+            var rawEl = container.querySelector('.mermaid-raw');
+            var previewEl = container.querySelector('.mermaid-preview');
+            if (!rawEl || !previewEl) return;
+
+            var code = rawEl.textContent.trim();
+            if (!code) {
+                previewEl.innerHTML = '';
+                return;
+            }
+
+            var uniqueId = 'mermaid-chart-' + Date.now() + '-' + index + '-' + (++mermaidIdCounter);
+
+            if (typeof mermaid.render === 'function') {
+                try {
+                    var renderResult = mermaid.render(uniqueId, code);
+                    if (renderResult && typeof renderResult.then === 'function') {
+                        renderResult.then(function(res) {
+                            previewEl.innerHTML = res.svg;
+                            if (res.bindFunctions) {
+                                res.bindFunctions(previewEl);
+                            }
+                        }).catch(function(err) {
+                            var errElem = document.getElementById(uniqueId);
+                            if (errElem) errElem.remove();
+                            var dErrElem = document.getElementById('d' + uniqueId);
+                            if (dErrElem) dErrElem.remove();
+
+                            previewEl.innerHTML = '<div class="mermaid-editing-notice" title="' + escapeHtml(err.message || 'Sintaxe incompleta') + '"><i class="material-icons">info</i> <span>Diagrama Mermaid (em digitação ou sintaxe incompleta...)</span></div>';
+                        });
+                    } else if (renderResult && renderResult.svg) {
+                        previewEl.innerHTML = renderResult.svg;
+                    }
+                } catch (err) {
+                    var errElem = document.getElementById(uniqueId);
+                    if (errElem) errElem.remove();
+                    var dErrElem = document.getElementById('d' + uniqueId);
+                    if (dErrElem) dErrElem.remove();
+
+                    previewEl.innerHTML = '<div class="mermaid-editing-notice" title="' + escapeHtml(err.message || 'Sintaxe incompleta') + '"><i class="material-icons">info</i> <span>Diagrama Mermaid (em digitação ou sintaxe incompleta...)</span></div>';
+                }
+            } else if (typeof mermaid.init === 'function') {
+                try {
+                    previewEl.textContent = code;
+                    previewEl.className = 'mermaid-preview mermaid';
+                    mermaid.init(undefined, previewEl);
+                } catch (err) {}
+            }
+        })(containers[i], i);
+    }
+}
+
+function renderMermaidDebounced() {
+    if (mermaidDebounceTimer) {
+        clearTimeout(mermaidDebounceTimer);
+    }
+    mermaidDebounceTimer = setTimeout(function() {
+        renderMermaidDiagrams();
+    }, 120);
 }
 
 CodeMirrorSpellChecker({
@@ -767,6 +888,46 @@ function actionTable() {
     }
 }
 
+function actionDiagram() {
+    editor.focus();
+    var cursor = editor.getCursor();
+    var selection = editor.getSelection();
+
+    var diagramTemplate = 
+"```mermaid\n" +
+"graph TD\n" +
+"    A[Início do Processo] --> B{Possui cadastro?}\n" +
+"    B -- Sim --> C[Fazer Login]\n" +
+"    B -- Não --> D[Criar Nova Conta]\n" +
+"    C --> E[Acessar Painel Principal]\n" +
+"    D --> E\n" +
+"```";
+
+    if (selection.length > 0) {
+        var trimmed = selection.trim();
+        if (trimmed.startsWith('```mermaid') && trimmed.endsWith('```')) {
+            editor.replaceSelection(trimmed.replace(/^```mermaid\s*/, '').replace(/```$/, '').trim(), "around");
+            return;
+        }
+        editor.replaceSelection("```mermaid\n" + selection + "\n```", "around");
+    } else {
+        var line = editor.getLine(cursor.line);
+        var prefix = "";
+        if (cursor.line > 0 && line.length > 0) {
+            prefix = "\n\n";
+        } else if (line.trim().length > 0) {
+            prefix = "\n";
+        }
+        var textToInsert = prefix + diagramTemplate + "\n";
+        editor.replaceRange(textToInsert, cursor);
+        var startLine = cursor.line + (prefix ? prefix.split("\n").length - 1 : 0);
+        editor.setSelection(
+            { line: startLine + 1, ch: 0 },
+            { line: startLine + 6, ch: 10 }
+        );
+    }
+}
+
 // Aliases for global accessibility and programmatic use
 window.actionBold = window.insertBold = actionBold;
 window.actionItalic = window.insertItalic = actionItalic;
@@ -774,6 +935,7 @@ window.actionCode = window.insertCode = actionCode;
 window.actionHeading = window.insertHeading = actionHeading;
 window.actionList = window.insertList = actionList;
 window.actionTable = window.insertTable = actionTable;
+window.actionDiagram = window.insertDiagram = actionDiagram;
 
 function initToolbar() {
     var toolbar = document.getElementById('toolbar');
@@ -1001,6 +1163,11 @@ function applyThemeByIndex(index) {
     try {
         localStorage.setItem('theme', themeObj.id);
     } catch (e) {}
+
+    // Atualiza os diagramas Mermaid para o novo tema selecionado
+    if (typeof renderMermaidDiagrams === 'function') {
+        renderMermaidDiagrams();
+    }
 }
 
 function initTheme() {
