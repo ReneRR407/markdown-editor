@@ -357,7 +357,12 @@ function initMermaidConfig() {
             startOnLoad: false,
             theme: getMermaidTheme(),
             securityLevel: 'loose',
-            fontFamily: 'Inter, -apple-system, sans-serif'
+            fontFamily: 'sans-serif',
+            flowchart: {
+                htmlLabels: false,
+                useMaxWidth: true,
+                padding: 16
+            }
         });
     } catch (e) {}
 }

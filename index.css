@@ -415,11 +415,13 @@ a#logo {
     flex-shrink: 0;
 }
 
-.toolbar-btn i.material-icons {
+.toolbar-btn i.material-icons,
+.toolbar-btn .toolbar-svg-icon {
     font-size: 17px;
     line-height: 1;
     display: inline-block;
     vertical-align: middle;
+    flex-shrink: 0;
 }
 
 .toolbar-btn .btn-label {
@@ -935,12 +937,23 @@ span.cm-error {
     display: flex;
     justify-content: center;
     align-items: center;
+    line-height: normal;
 }
 
 .mermaid-preview svg {
     max-width: 100%;
     height: auto;
     display: block;
+    line-height: normal;
+}
+
+.mermaid-preview foreignObject,
+.mermaid-preview foreignObject div,
+.mermaid-preview foreignObject p,
+.mermaid-preview foreignObject span {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: normal !important;
 }
 
 .mermaid-editing-notice {
