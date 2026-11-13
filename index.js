@@ -1201,10 +1201,106 @@ function toggleReadMode(button) {
     button.classList.toggle('selected');
     document.getElementById('out').classList.toggle('focused');
     document.getElementById('in').classList.toggle('hidden');
+    var resizer = document.getElementById('split-resizer');
+    if (resizer) {
+        resizer.classList.toggle('hidden');
+    }
     var toolbar = document.getElementById('toolbar');
     if (toolbar) {
         toolbar.classList.toggle('hidden');
     }
+}
+
+/* Divisória Arrastável entre Editor (#in) e Preview (#out) */
+function applySplitRatio(percent) {
+    var clamped = Math.max(20, Math.min(80, percent));
+    var inEl = document.getElementById('in');
+    var outEl = document.getElementById('out');
+    var resizer = document.getElementById('split-resizer');
+
+    if (inEl) inEl.style.width = clamped + '%';
+    if (outEl) outEl.style.left = clamped + '%';
+    if (resizer) resizer.style.left = clamped + '%';
+
+    return clamped;
+}
+
+function initSplitResizer() {
+    var resizer = document.getElementById('split-resizer');
+    if (!resizer) return;
+
+    var savedRatio = null;
+    try {
+        savedRatio = parseFloat(localStorage.getItem('splitRatio'));
+    } catch (e) {}
+    if (!isNaN(savedRatio) && savedRatio >= 20 && savedRatio <= 80) {
+        applySplitRatio(savedRatio);
+    }
+
+    var isResizing = false;
+
+    function onMove(clientX) {
+        if (!isResizing) return;
+        var winWidth = window.innerWidth || document.documentElement.clientWidth;
+        if (winWidth <= 0) return;
+        var percent = (clientX / winWidth) * 100;
+        var clamped = applySplitRatio(percent);
+        try {
+            localStorage.setItem('splitRatio', clamped.toFixed(2));
+        } catch (e) {}
+    }
+
+    function stopResizing() {
+        if (!isResizing) return;
+        isResizing = false;
+        resizer.classList.remove('resizing');
+        document.body.classList.remove('is-resizing');
+        if (typeof editor !== 'undefined' && editor.refresh) {
+            editor.refresh();
+        }
+    }
+
+    resizer.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        isResizing = true;
+        resizer.classList.add('resizing');
+        document.body.classList.add('is-resizing');
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (isResizing) {
+            onMove(e.clientX);
+        }
+    });
+
+    document.addEventListener('mouseup', stopResizing);
+
+    resizer.addEventListener('touchstart', function(e) {
+        if (e.touches && e.touches.length > 0) {
+            isResizing = true;
+            resizer.classList.add('resizing');
+            document.body.classList.add('is-resizing');
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+        if (isResizing && e.touches && e.touches.length > 0) {
+            onMove(e.touches[0].clientX);
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', stopResizing);
+
+    // Duplo clique restaura para 50% / 50%
+    resizer.addEventListener('dblclick', function() {
+        var clamped = applySplitRatio(50);
+        try {
+            localStorage.setItem('splitRatio', clamped.toFixed(2));
+        } catch (e) {}
+        if (typeof editor !== 'undefined' && editor.refresh) {
+            editor.refresh();
+        }
+    });
 }
 
 function toggleSpellCheck(button) {
@@ -1244,6 +1340,7 @@ function processQueryParams() {
 function start() {
     initTheme();
     initSyncScroll();
+    initSplitResizer();
     processQueryParams();
     if (window.location.hash) {
         var h = window.location.hash.replace(/^#/, '');

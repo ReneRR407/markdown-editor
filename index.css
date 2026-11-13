@@ -825,12 +825,13 @@ body[class*="theme-"] .stat-item strong {
     font-style: italic;
 }
 
-.view #in {
-    display: none;
+.view #in,
+.view #split-resizer {
+    display: none !important;
 }
 
 .view #out {
-    left: 0;
+    left: 0 !important;
     padding-left: 32px;
     top: 48px !important;
 }
@@ -851,9 +852,61 @@ body[class*="theme-"] .stat-item strong {
     display: block;
     width: 60%;
     margin-left: -30%;
-    left: 50%;
+    left: 50% !important;
     border-left: 0 !important;
     top: 48px !important;
+}
+
+/* Divisória Arrastável entre Editor (#in) e Preview (#out) */
+.split-resizer {
+    position: fixed;
+    top: 90px;
+    bottom: 36px;
+    left: 50%;
+    width: 8px;
+    margin-left: -4px;
+    z-index: 15;
+    cursor: col-resize;
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+}
+
+.split-resizer::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 36px;
+    border-radius: 2px;
+    background-color: var(--border-color);
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease, height 0.15s ease;
+}
+
+.split-resizer:hover::after,
+.split-resizer.resizing::after {
+    opacity: 1;
+    background-color: var(--accent-color);
+    height: 56px;
+}
+
+.split-resizer:hover,
+.split-resizer.resizing {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+body.is-resizing {
+    cursor: col-resize !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+body.is-resizing #in,
+body.is-resizing #out {
+    transition: none !important;
+    pointer-events: none;
 }
 
 .no-spellcheck .cm-spell-error {
@@ -886,8 +939,12 @@ span.cm-error {
 @media screen and (max-width: 1024px) {
     #in, #out {
         margin: 0;
-        left: 0;
-        width: 100%;
+        left: 0 !important;
+        width: 100% !important;
+    }
+
+    #split-resizer {
+        display: none !important;
     }
 
     #in {
@@ -902,7 +959,7 @@ span.cm-error {
         display: block;
         width: 100%;
         margin-left: 0;
-        left: 0;
+        left: 0 !important;
     }
 }
 
@@ -974,7 +1031,7 @@ span.cm-error {
 }
 
 @media print {
-    #in, #navbar, #toolbar, #footer, #toc-panel, .copy-code-btn {
+    #in, #split-resizer, #navbar, #toolbar, #footer, #toc-panel, .copy-code-btn {
         display: none !important;
     }
     #out {
