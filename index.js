@@ -62,6 +62,9 @@ function update(e) {
         try {
             localStorage.setItem('content', val);
         } catch (err) {}
+        if (typeof syncActiveDocumentContent === 'function') {
+            syncActiveDocumentContent(val);
+        }
     }
 
     //If a title is added to the document it will be the new document.title, otherwise use default
@@ -980,12 +983,20 @@ document.addEventListener('drop', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files[0]) return;
+    var droppedFile = e.dataTransfer.files[0];
     var reader = new FileReader();
-    reader.onload = function(e) {
-        editor.setValue(e.target.result);
+    reader.onload = function(ev) {
+        var content = ev.target.result;
+        if (typeof createNewDocument === 'function') {
+            var baseName = droppedFile.name.replace(/\.(md|mdown|markdown|txt)$/i, '') || 'Arquivo Importado';
+            createNewDocument(baseName, content);
+        } else {
+            editor.setValue(content);
+        }
     };
 
-    reader.readAsText(e.dataTransfer.files[0]);
+    reader.readAsText(droppedFile);
 }, false);
 
 function getSafeFileName(ext) {
@@ -1057,14 +1068,21 @@ function hideMenu() {
 function openFile(evt) {
     if (window.File && window.FileReader && window.FileList && window.Blob) {
         var files = evt.target.files;
-        console.log(files);
+        if (!files || !files[0]) return;
+        var selectedFile = files[0];
         var reader = new FileReader();
         reader.onload = function(file) {
-            console.log(file.target.result);
-            editor.setValue(file.target.result);
+            var content = file.target.result;
+            if (typeof createNewDocument === 'function') {
+                var baseName = selectedFile.name.replace(/\.(md|mdown|markdown|txt)$/i, '') || 'Arquivo Importado';
+                createNewDocument(baseName, content);
+            } else {
+                editor.setValue(content);
+            }
             return true;
         };
-        reader.readAsText(files[0]);
+        reader.readAsText(selectedFile);
+        evt.target.value = '';
 
     } else {
         alert('As APIs de arquivo não são totalmente suportadas neste navegador.');
@@ -1337,12 +1355,428 @@ function processQueryParams() {
     }
 }
 
+/* ==========================================================================
+   Gerenciador de Múltiplos Documentos
+   ========================================================================== */
+var DOCS_STORAGE_KEY = 'md_documents';
+var ACTIVE_DOC_KEY = 'md_active_doc_id';
+var mdDocuments = [];
+var activeDocId = null;
+var docsSearchQuery = '';
+var editingDocId = null;
+
+function extractTitleFromMarkdown(markdown) {
+    if (!markdown || typeof markdown !== 'string') return 'Sem título';
+    var lines = markdown.split(/\r\n|\r|\n/);
+    for (var i = 0; i < lines.length; i++) {
+        var trimmed = lines[i].trim();
+        if (!trimmed) continue;
+        var hMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
+        if (hMatch) {
+            return hMatch[1].trim().slice(0, 60);
+        }
+        return trimmed.replace(/[*_`>#-]/g, '').trim().slice(0, 45) || 'Sem título';
+    }
+    return 'Sem título';
+}
+
+function countWordsShort(text) {
+    var trimmed = (text || '').trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).filter(function(t) {
+        return /[a-zA-Z0-9\u00C0-\u024F]/.test(t);
+    }).length;
+}
+
+function formatDocDate(timestamp) {
+    if (!timestamp) return '';
+    var d = new Date(timestamp);
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (d.toDateString() === now.toDateString()) {
+        return 'Hoje, ' + timeStr;
+    }
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ', ' + timeStr;
+}
+
+function persistDocuments() {
+    try {
+        localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(mdDocuments));
+        if (activeDocId) {
+            localStorage.setItem(ACTIVE_DOC_KEY, activeDocId);
+        }
+    } catch (e) {}
+}
+
+function getActiveDocument() {
+    for (var i = 0; i < mdDocuments.length; i++) {
+        if (mdDocuments[i].id === activeDocId) {
+            return mdDocuments[i];
+        }
+    }
+    return mdDocuments[0] || null;
+}
+
+function updateActiveDocIndicator() {
+    var active = getActiveDocument();
+    var nameEl = document.getElementById('active-doc-name');
+    var badgeEl = document.getElementById('docs-count-badge');
+    if (nameEl && active) {
+        nameEl.textContent = active.title || 'Sem título';
+    }
+    if (badgeEl) {
+        badgeEl.textContent = mdDocuments.length;
+    }
+}
+
+function syncActiveDocumentContent(val) {
+    var active = getActiveDocument();
+    if (!active) return;
+    active.content = val;
+    active.updatedAt = Date.now();
+    if (active.autoTitle !== false) {
+        active.title = extractTitleFromMarkdown(val);
+    }
+    persistDocuments();
+    updateActiveDocIndicator();
+    var panel = document.getElementById('docs-panel');
+    if (panel && !panel.classList.contains('hidden') && !editingDocId) {
+        renderDocsList();
+    }
+}
+
+function renderDocsList() {
+    var listEl = document.getElementById('docs-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    var query = (docsSearchQuery || '').trim().toLowerCase();
+
+    var filtered = mdDocuments.filter(function(doc) {
+        if (!query) return true;
+        return (doc.title || '').toLowerCase().indexOf(query) !== -1 ||
+               (doc.content || '').toLowerCase().indexOf(query) !== -1;
+    });
+
+    if (filtered.length === 0) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'toc-empty';
+        emptyEl.textContent = query ? 'Nenhum documento encontrado para "' + docsSearchQuery + '".' : 'Nenhum documento salvo.';
+        listEl.appendChild(emptyEl);
+        return;
+    }
+
+    for (var i = 0; i < filtered.length; i++) {
+        (function(doc) {
+            var item = document.createElement('div');
+            item.className = 'doc-item' + (doc.id === activeDocId ? ' active' : '');
+
+            var info = document.createElement('div');
+            info.className = 'doc-item-info';
+
+            if (editingDocId === doc.id) {
+                var input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'doc-rename-input';
+                input.value = doc.title || '';
+
+                var commitRename = function() {
+                    var newTitle = input.value.trim();
+                    if (newTitle) {
+                        doc.title = newTitle;
+                        doc.autoTitle = false;
+                        persistDocuments();
+                        updateActiveDocIndicator();
+                    }
+                    editingDocId = null;
+                    renderDocsList();
+                };
+
+                input.addEventListener('click', function(e) { e.stopPropagation(); });
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        commitRename();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        editingDocId = null;
+                        renderDocsList();
+                    }
+                });
+                input.addEventListener('blur', commitRename);
+
+                info.appendChild(input);
+                setTimeout(function() {
+                    input.focus();
+                    input.select();
+                }, 10);
+            } else {
+                var titleEl = document.createElement('div');
+                titleEl.className = 'doc-item-title';
+                titleEl.textContent = doc.title || 'Sem título';
+
+                var metaEl = document.createElement('div');
+                metaEl.className = 'doc-item-meta';
+                var words = countWordsShort(doc.content);
+                metaEl.textContent = words + (words === 1 ? ' palavra' : ' palavras') + ' • ' + formatDocDate(doc.updatedAt);
+
+                info.appendChild(titleEl);
+                info.appendChild(metaEl);
+            }
+
+            var actions = document.createElement('div');
+            actions.className = 'doc-item-actions';
+
+            var renameBtn = document.createElement('button');
+            renameBtn.type = 'button';
+            renameBtn.className = 'doc-action-btn';
+            renameBtn.title = 'Renomear documento';
+            renameBtn.innerHTML = '<i class="material-icons">edit</i>';
+            renameBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                editingDocId = doc.id;
+                renderDocsList();
+            });
+
+            var deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'doc-action-btn delete';
+            deleteBtn.title = 'Excluir documento';
+            deleteBtn.innerHTML = '<i class="material-icons">delete</i>';
+            deleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                deleteDocument(doc.id);
+            });
+
+            actions.appendChild(renameBtn);
+            actions.appendChild(deleteBtn);
+
+            item.appendChild(info);
+            item.appendChild(actions);
+
+            item.addEventListener('click', function() {
+                if (editingDocId === doc.id) return;
+                switchDocument(doc.id);
+            });
+
+            listEl.appendChild(item);
+        })(filtered[i]);
+    }
+}
+
+function switchDocument(docId) {
+    if (docId === activeDocId) return;
+    var target = null;
+    for (var i = 0; i < mdDocuments.length; i++) {
+        if (mdDocuments[i].id === docId) {
+            target = mdDocuments[i];
+            break;
+        }
+    }
+    if (!target) return;
+
+    // Salva conteúdo atual antes de trocar
+    var current = getActiveDocument();
+    if (current && !isInitializing) {
+        current.content = editor.getValue();
+        current.updatedAt = Date.now();
+    }
+
+    activeDocId = target.id;
+    persistDocuments();
+
+    isInitializing = true;
+    editor.setValue(target.content || '');
+    editor.clearHistory();
+    isInitializing = false;
+
+    try {
+        localStorage.setItem('content', target.content || '');
+    } catch (e) {}
+
+    update(editor);
+    updateActiveDocIndicator();
+    renderDocsList();
+    editor.focus();
+}
+
+function createNewDocument(customTitle, customContent) {
+    var current = getActiveDocument();
+    if (current && !isInitializing) {
+        current.content = editor.getValue();
+        current.updatedAt = Date.now();
+    }
+
+    var newIndex = mdDocuments.length + 1;
+    var title = customTitle || ('Novo Documento ' + newIndex);
+    var content = customContent !== undefined ? customContent : ('# ' + title + '\n\n');
+
+    var newDoc = {
+        id: 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        title: title,
+        autoTitle: customTitle ? false : true,
+        content: content,
+        updatedAt: Date.now()
+    };
+
+    mdDocuments.unshift(newDoc);
+    activeDocId = newDoc.id;
+    persistDocuments();
+
+    isInitializing = true;
+    editor.setValue(newDoc.content);
+    editor.clearHistory();
+    isInitializing = false;
+
+    try {
+        localStorage.setItem('content', newDoc.content);
+    } catch (e) {}
+
+    update(editor);
+    updateActiveDocIndicator();
+    renderDocsList();
+    editor.focus();
+}
+
+function deleteDocument(docId) {
+    var target = null;
+    var targetIndex = -1;
+    for (var i = 0; i < mdDocuments.length; i++) {
+        if (mdDocuments[i].id === docId) {
+            target = mdDocuments[i];
+            targetIndex = i;
+            break;
+        }
+    }
+    if (!target) return;
+
+    var executeDelete = function() {
+        mdDocuments.splice(targetIndex, 1);
+        if (mdDocuments.length === 0) {
+            var fallbackDoc = {
+                id: 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                title: 'Novo Documento',
+                autoTitle: true,
+                content: '# Novo Documento\n\n',
+                updatedAt: Date.now()
+            };
+            mdDocuments.push(fallbackDoc);
+        }
+        if (activeDocId === docId) {
+            activeDocId = mdDocuments[0].id;
+            isInitializing = true;
+            editor.setValue(mdDocuments[0].content || '');
+            editor.clearHistory();
+            isInitializing = false;
+            try {
+                localStorage.setItem('content', mdDocuments[0].content || '');
+            } catch (e) {}
+            update(editor);
+        }
+        persistDocuments();
+        updateActiveDocIndicator();
+        renderDocsList();
+    };
+
+    if (typeof swal === 'function') {
+        swal({
+            title: "Excluir documento?",
+            text: 'Você está prestes a excluir "' + (target.title || 'Sem título') + '".',
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#DD6B55",
+            confirmButtonText: "Sim, excluir!",
+            cancelButtonText: "Cancelar",
+            closeOnConfirm: true
+        }, executeDelete);
+    } else if (confirm('Excluir "' + (target.title || 'Sem título') + '"?')) {
+        executeDelete();
+    }
+}
+
+function filterDocuments(query) {
+    docsSearchQuery = query || '';
+    renderDocsList();
+}
+
+function toggleDocsPanel() {
+    var panel = document.getElementById('docs-panel');
+    var btn = document.getElementById('btn-docs');
+    if (!panel) return;
+    var isHidden = panel.classList.toggle('hidden');
+    if (btn) {
+        if (!isHidden) {
+            btn.classList.add('active');
+            renderDocsList();
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+}
+
+function initDocsManager(skipLoadToEditor) {
+    var rawDocs = null;
+    try {
+        rawDocs = localStorage.getItem(DOCS_STORAGE_KEY);
+        if (rawDocs) {
+            mdDocuments = JSON.parse(rawDocs);
+        }
+    } catch (e) {
+        mdDocuments = [];
+    }
+
+    if (!Array.isArray(mdDocuments) || mdDocuments.length === 0) {
+        var legacyContent = null;
+        try {
+            legacyContent = localStorage.getItem('content');
+        } catch (e) {}
+        var initialContent = legacyContent !== null ? legacyContent : (document.getElementById('code') ? document.getElementById('code').value : '# Novo Documento');
+        mdDocuments = [{
+            id: 'doc-' + Date.now() + '-init',
+            title: extractTitleFromMarkdown(initialContent),
+            autoTitle: true,
+            content: initialContent,
+            updatedAt: Date.now()
+        }];
+        activeDocId = mdDocuments[0].id;
+        persistDocuments();
+    } else {
+        var savedActiveId = null;
+        try {
+            savedActiveId = localStorage.getItem(ACTIVE_DOC_KEY);
+        } catch (e) {}
+        activeDocId = savedActiveId || mdDocuments[0].id;
+        if (!getActiveDocument()) {
+            activeDocId = mdDocuments[0].id;
+        }
+    }
+
+    if (!skipLoadToEditor) {
+        var active = getActiveDocument();
+        if (active) {
+            editor.setValue(active.content || '');
+        }
+    }
+
+    updateActiveDocIndicator();
+    renderDocsList();
+}
+
+window.toggleDocsPanel = toggleDocsPanel;
+window.createNewDocument = createNewDocument;
+window.filterDocuments = filterDocuments;
+window.switchDocument = switchDocument;
+window.deleteDocument = deleteDocument;
+
 function start() {
     initTheme();
     initSyncScroll();
     initSplitResizer();
     processQueryParams();
-    if (window.location.hash) {
+    var hasHash = Boolean(window.location.hash);
+    initDocsManager(hasHash);
+    if (hasHash) {
         var h = window.location.hash.replace(/^#/, '');
         if (h.slice(0, 5) == 'view:') {
             setOutput(decodeURIComponent(escape(RawDeflate.inflate(atob(h.slice(5))))));
@@ -1358,8 +1792,6 @@ function start() {
                 ))
             );
         }
-    } else if (localStorage.getItem('content') !== null) {
-        editor.setValue(localStorage.getItem('content'));
     }
     isInitializing = false;
     update(editor);

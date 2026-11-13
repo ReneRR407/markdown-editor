@@ -98,8 +98,28 @@
           <i class="material-icons">toc</i>
           <span class="btn-label">Índice</span>
         </button>
+        <button type="button" id="btn-docs" class="toolbar-btn" title="Abrir/Fechar gerenciador de documentos" onclick="toggleDocsPanel()" data-action="docs">
+          <i class="material-icons">folder</i>
+          <span class="btn-label">Documentos (<span id="docs-count-badge">1</span>)</span>
+        </button>
       </div>
     </div>
+    <aside id="docs-panel" class="docs-panel hidden">
+      <div class="docs-header">
+        <span class="docs-title"><i class="material-icons">folder</i> Documentos</span>
+        <div class="docs-header-actions">
+          <button type="button" id="btn-new-doc" class="docs-new-btn" title="Criar novo documento" onclick="createNewDocument()">
+            <i class="material-icons">add</i> Novo
+          </button>
+          <button type="button" id="close-docs" class="toc-close-btn" title="Fechar Documentos" onclick="toggleDocsPanel()">&times;</button>
+        </div>
+      </div>
+      <div class="docs-search-box">
+        <i class="material-icons">search</i>
+        <input type="text" id="docs-search-input" class="docs-search-input" placeholder="Buscar documento..." oninput="filterDocuments(this.value)" />
+      </div>
+      <div id="docs-list" class="docs-list"></div>
+    </aside>
     <aside id="toc-panel" class="toc-panel hidden">
       <div class="toc-header">
         <span class="toc-title"><i class="material-icons">toc</i> Índice do Documento</span>
@@ -109,6 +129,11 @@
     </aside>
     <footer id="footer" class="footer">
       <div class="footer-content">
+        <span class="stat-item doc-active-indicator" title="Documento atual (clique para abrir lista)" onclick="toggleDocsPanel()">
+          <i class="material-icons">description</i>
+          <strong id="active-doc-name">Novo Documento</strong>
+        </span>
+        <span class="stat-separator">|</span>
         <span class="stat-item" title="Contagem de palavras">
           <i class="material-icons">short_text</i>
           <span class="stat-label">Palavras:</span>
