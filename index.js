@@ -1143,7 +1143,7 @@ function saveInBrowser() {
 
 var availableThemes = [
     { id: 'default', className: '', label: 'Padrão' },
-    { id: 'theme-dark', className: 'theme-dark', label: 'Escuro Clássico' },
+    { id: 'theme-dark', className: 'theme-dark', label: 'Escuro' },
     { id: 'theme-dracula', className: 'theme-dracula', label: 'Dracula' },
     { id: 'theme-monokai', className: 'theme-monokai', label: 'Monokai' },
     { id: 'theme-solarized', className: 'theme-solarized', label: 'Solarized' },
