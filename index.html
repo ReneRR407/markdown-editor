@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
-    <title>Markdown Editor</title>
+    <title>Editor Markdown</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="lib/material-icons.css">
     <link rel="stylesheet" href="lib/base16-light.css">
@@ -14,11 +14,11 @@
     <link rel="stylesheet" href="index.css">
   </head>
   <body id="toplevel">
-    <div id="in"><form><textarea id="code"># New Document</textarea></form></div>
+    <div id="in"><form><textarea id="code"># Novo Documento</textarea></form></div>
     <div id="out" class="markdown-body"></div>
     <div id="menu">
-      <span>Save As</span>
-      <div id="saveas-markdown">
+      <span>Salvar Como</span>
+      <div id="saveas-markdown" title="Baixar em formato Markdown (.md)">
         <svg height="64" width="64" xmlns="http://www.w3.org/2000/svg">
           <g transform="scale(0.0625)">
             <path d="M950.154 192H73.846C33.127 192 0 225.12699999999995 0 265.846v492.308C0 798.875 33.127 832 73.846 832h876.308c40.721 0 73.846-33.125 73.846-73.846V265.846C1024 225.12699999999995 990.875 192 950.154 192zM576 703.875L448 704V512l-96 123.077L256 512v192H128V320h128l96 128 96-128 128-0.125V703.875zM767.091 735.875L608 512h96V320h128v192h96L767.091 735.875z" />
@@ -26,7 +26,7 @@
         </svg>
         <span>Markdown</span>
       </div>
-      <div id="saveas-html">
+      <div id="saveas-html" title="Baixar em formato HTML (.html)">
         <svg height="64" width="64" xmlns="http://www.w3.org/2000/svg">
           <g transform="scale(0.0625) translate(64,0)">
             <path d="M608 192l-96 96 224 224L512 736l96 96 288-320L608 192zM288 192L0 512l288 320 96-96L160 512l224-224L288 192z" />
@@ -34,23 +34,23 @@
         </svg>
         <span>HTML</span>
       </div>
-      <a id="close-menu">&times;</a>
+      <a id="close-menu" title="Fechar">&times;</a>
     </div>
     <div id="navbar">
       <div id="navcontent">
-        <a id="logo" href = "https://github.com/jbt/markdown-editor" tooltip = "Check out the code on Github!">
-          <p id="title" class="left"># Markdown Editor</p>
+        <a id="logo" href="https://github.com/ReneRR407/markdown-editor" title="Confira o código no GitHub!" tooltip="Confira o código no GitHub!">
+          <p id="title" class="left"># Editor Markdown</p>
         </a>
-        <p id="openbutton" title="Open from Disk" class="navbutton left" onclick="document.getElementById('fileInput').click();"><i class="material-icons">open_in_browser</i></p>
+        <p id="openbutton" title="Abrir arquivo do computador" class="navbutton left" onclick="document.getElementById('fileInput').click();"><i class="material-icons">open_in_browser</i></p>
         <input id="fileInput" type="file" class="hidden" accept=".md,.mdown,.txt,.markdown"/>
-        <p id="savebutton" title="Download" class="navbutton left" onclick="showMenu()"><i class="material-icons">file_download</i></p>
-        <p id="browsersavebutton" title="Browser Save (Experimental)" class="navbutton left" onclick="saveInBrowser()"><i class="material-icons">save</i></p>
-        <p id="sharebutton" title="Generate Shareable Link" class="navbutton left" onclick="updateHash()"><i class="material-icons">share</i></p>
-        <p id="nightbutton" title="Alternar Tema (Padrão, Dracula, Monokai, Solarized, Neon)" class="navbutton left" onclick="toggleNightMode(this)"><i class="material-icons">invert_colors</i><span id="theme-badge" class="theme-badge">Padrão</span></p>
-        <p id="readbutton" title="Reading Mode" class="navbutton left" onclick="toggleReadMode(this)"><i class="material-icons">chrome_reader_mode</i></p>
-        <p id="spellbutton" title="Spell Check" class="navbutton left selected" onclick="toggleSpellCheck(this)"><i class="material-icons">spellcheck</i></p>
-        <p id="newbutton" class="navbutton left hidden" onclick="clearEditor()">Clear</p>
-        <p id="sharebutton" class="navbutton left selected hidden">Share</p>
+        <p id="savebutton" title="Baixar documento (.md ou .html)" class="navbutton left" onclick="showMenu()"><i class="material-icons">file_download</i></p>
+        <p id="browsersavebutton" title="Salvar no navegador" class="navbutton left" onclick="saveInBrowser()"><i class="material-icons">save</i></p>
+        <p id="sharebutton" title="Gerar link compartilhável" class="navbutton left" onclick="updateHash()"><i class="material-icons">share</i></p>
+        <p id="nightbutton" title="Alternar tema de cores" class="navbutton left" onclick="toggleNightMode(this)"><i class="material-icons">invert_colors</i><span id="theme-badge" class="theme-badge">Padrão</span></p>
+        <p id="readbutton" title="Modo de leitura" class="navbutton left" onclick="toggleReadMode(this)"><i class="material-icons">chrome_reader_mode</i></p>
+        <p id="spellbutton" title="Verificação ortográfica" class="navbutton left selected" onclick="toggleSpellCheck(this)"><i class="material-icons">spellcheck</i></p>
+        <p id="newbutton" class="navbutton left hidden" onclick="clearEditor()">Limpar</p>
+        <p id="sharebutton" class="navbutton left selected hidden">Compartilhar</p>
       </div>
     </div>
     <div id="toolbar" class="toolbar">
@@ -67,24 +67,24 @@
           <i class="material-icons">code</i>
           <span class="btn-label">Código</span>
         </button>
-        <button type="button" id="btn-heading" class="toolbar-btn" title="Título" onclick="actionHeading()" data-action="heading">
+        <button type="button" id="btn-heading" class="toolbar-btn" title="Título (Ctrl+H)" onclick="actionHeading()" data-action="heading">
           <i class="material-icons">title</i>
           <span class="btn-label">Título</span>
         </button>
-        <button type="button" id="btn-list" class="toolbar-btn" title="Lista" onclick="actionList()" data-action="list">
+        <button type="button" id="btn-list" class="toolbar-btn" title="Lista de itens" onclick="actionList()" data-action="list">
           <i class="material-icons">format_list_bulleted</i>
           <span class="btn-label">Lista</span>
         </button>
-        <button type="button" id="btn-table" class="toolbar-btn" title="Tabela" onclick="actionTable()" data-action="table">
+        <button type="button" id="btn-table" class="toolbar-btn" title="Inserir tabela" onclick="actionTable()" data-action="table">
           <i class="material-icons">grid_on</i>
           <span class="btn-label">Tabela</span>
         </button>
         <span class="toolbar-divider"></span>
-        <button type="button" id="btn-sync-scroll" class="toolbar-btn active" title="Ativar/Desativar sincronização de scroll entre os painéis" onclick="toggleSyncScroll()" data-action="sync-scroll">
+        <button type="button" id="btn-sync-scroll" class="toolbar-btn active" title="Ativar/Desativar rolagem sincronizada entre os painéis" onclick="toggleSyncScroll()" data-action="sync-scroll">
           <i class="material-icons">swap_vert</i>
-          <span class="btn-label" id="sync-scroll-label">Scroll Sincronizado: Ativo</span>
+          <span class="btn-label" id="sync-scroll-label">Rolagem Sincronizada: Ativa</span>
         </button>
-        <button type="button" id="btn-toc" class="toolbar-btn" title="Abrir/Fechar Índice de Cabeçalhos (Sumário)" onclick="toggleTOC()" data-action="toc">
+        <button type="button" id="btn-toc" class="toolbar-btn" title="Abrir/Fechar índice de cabeçalhos do documento" onclick="toggleTOC()" data-action="toc">
           <i class="material-icons">toc</i>
           <span class="btn-label">Índice</span>
         </button>

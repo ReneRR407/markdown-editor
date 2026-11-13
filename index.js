@@ -47,7 +47,7 @@ function update(e) {
     if (headerElements.length > 0 && headerElements[0].textContent.length > 0) {
         title = headerElements[0].textContent;
     } else {
-        title = 'Markdown Editor'
+        title = 'Editor Markdown';
     }
 
     //To avoid to much title changing we check if is not the same as before
@@ -350,7 +350,7 @@ function applySyncScrollState(enabled) {
         }
     }
     if (label) {
-        label.textContent = syncScrollEnabled ? 'Scroll Sincronizado: Ativo' : 'Scroll Sincronizado: Inativo';
+        label.textContent = syncScrollEnabled ? 'Rolagem Sincronizada: Ativa' : 'Rolagem Sincronizada: Inativa';
     }
 }
 
@@ -900,7 +900,7 @@ function openFile(evt) {
         reader.readAsText(files[0]);
 
     } else {
-        alert('The File APIs are not fully supported in this browser.');
+        alert('As APIs de arquivo não são totalmente suportadas neste navegador.');
     }
 }
 
@@ -936,23 +936,24 @@ function saveInBrowser() {
     var text = editor.getValue();
     if (localStorage.getItem('content')) {
         swal({
-                title: "Existing Data Detected",
-                text: "You will overwrite the data previously saved!",
+                title: "Dados Existentes Detectados",
+                text: "Você irá sobrescrever os dados salvos anteriormente!",
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonColor: "#DD6B55",
-                confirmButtonText: "Yes, overwrite!",
+                confirmButtonText: "Sim, sobrescrever!",
+                cancelButtonText: "Cancelar",
                 closeOnConfirm: false
             },
             function() {
                 localStorage.setItem('content', text);
-                swal("Saved", "Your Document has been saved.", "success");
+                swal("Salvo!", "Seu documento foi salvo com sucesso.", "success");
             });
     } else {
         localStorage.setItem('content', text);
-        swal("Saved", "Your Document has been saved.", "success");
+        swal("Salvo!", "Seu documento foi salvo com sucesso.", "success");
     }
-    console.log("Saved");
+    console.log("Salvo");
 }
 
 var availableThemes = [
@@ -1102,8 +1103,8 @@ window.addEventListener("beforeunload", function (e) {
     if (!editor.getValue() || editor.getValue() == localStorage.getItem('content')) {
         return;
     }
-    var confirmationMessage = 'It looks like you have been editing something. '
-                            + 'If you leave before saving, your changes will be lost.';
+    var confirmationMessage = 'Parece que você editou o documento. '
+                            + 'Se sair antes de salvar, suas alterações serão perdidas.';
     (e || window.event).returnValue = confirmationMessage; //Gecko + IE
     return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
 });
